@@ -11,12 +11,12 @@ static char *icons[] = {" ", "○", "●", "."}; // icons presenting each player
 enum {
     NONE,
     BLACK,
-    WHITE
+    WHITE,
+    PLACEABLE
 }; // turn number of each player
 
-static unsigned turn = 1; // 1: black, 2: white
-static unsigned char *board;
-extern unsigned char debug; // print logs if true.
+extern unsigned turn; // 1: black, 2: white
+extern unsigned char *board, debug, is_end; // print logs if true.
 
 static Dl_info info; // for logging
 
@@ -24,12 +24,12 @@ typedef struct {
     short x, y, z;
 } Vector; // Vector struct
 
-static const Vector DELTAS[27] = {
+static const Vector DELTAS[26] = {
     {-1, -1, -1}, { 0, -1, -1}, { 1, -1, -1},
     {-1, -1,  0}, { 0, -1,  0}, { 1, -1,  0},
     {-1, -1,  1}, { 0, -1,  1}, { 1, -1,  1},
     {-1,  0, -1}, { 0,  0, -1}, { 1,  0, -1},
-    {-1,  0,  0}, { 0,  0,  0}, { 1,  0,  0},
+    {-1,  0,  0},               { 1,  0,  0},
     {-1,  0,  1}, { 0,  0,  1}, { 1,  0,  1},
     {-1,  1, -1}, { 0,  1, -1}, { 1,  1, -1},
     {-1,  1,  0}, { 0,  1,  0}, { 1,  1,  0},
@@ -45,7 +45,7 @@ static inline const Vector vector_sum(
 ); // Return: The sum of vectors.
 
 // Calculate index from vector.
-static inline const int vec2i(
+const int vec2i(
     const Vector v,
     const unsigned int called_line // The line number calls this function
 ); // Return: index

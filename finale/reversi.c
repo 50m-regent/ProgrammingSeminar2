@@ -6,7 +6,7 @@ static inline const Vector vector_sum(const Vector v1, const Vector v2, const un
     return (Vector){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z};
 }
 
-static inline const int vec2i(const Vector v, const unsigned int called_line) {
+const int vec2i(const Vector v, const unsigned int called_line) {
     int i;
 
     if (
@@ -32,6 +32,8 @@ void board_init(const unsigned int called_line) {
     board[vec2i((Vector){board_size.x / 2 - 1, board_size.y / 2 - 1, board_size.z / 2    }, __LINE__)] = 1;
     board[vec2i((Vector){board_size.x / 2 - 1, board_size.y / 2 - 1, board_size.z / 2 - 1}, __LINE__)] = 2;
 
+    set_placeable(__LINE__);
+
     if (debug > 1) DEBUG(called_line, DEB_BOARD);
 }
 
@@ -45,7 +47,7 @@ const unsigned count_empty(const unsigned int called_line) {
 
 const unsigned char is_placeable(const Vector cell, const unsigned int called_line) {
     if (debug > 1) DEBUG(called_line, DEB_CHECK_PLACEABLE, cell.x, cell.y, cell.z, vec2i(cell, __LINE__));
-    for (unsigned char i = 0; i < 27; i++) {
+    for (unsigned char i = 0; i < 26; i++) {
         const Vector delta = DELTAS[i];
 
         if (vec2i(vector_sum(vector_sum(cell, delta, __LINE__), delta, __LINE__), __LINE__) < 0) continue;
@@ -57,7 +59,7 @@ const unsigned char is_placeable(const Vector cell, const unsigned int called_li
             (board[vec2i(vector_sum(cell, delta, __LINE__), __LINE__)] == turn % 2 + 1) &&
             search(vector_sum(vector_sum(cell, delta, __LINE__), delta, __LINE__), delta, 0)
         ) {
-            board[vec2i(cell, __LINE__)] = 3;
+            board[vec2i(cell, __LINE__)] = PLACEABLE;
 
             if (debug > 1) DEBUG(called_line, DEB_PLACEABLE, delta.x, delta.y, delta.z);
             return 1;
@@ -76,8 +78,8 @@ const unsigned set_placeable(const unsigned int called_line) {
                 const Vector v = (Vector){x, y, z};
                 if (debug > 1) DEBUG(called_line, DEB_SET_PLACEABLE, x, y, z, vec2i(v, __LINE__));
 
-                if (board[vec2i(v, __LINE__)] == 3) board[vec2i(v, __LINE__)] = 0;
-                if (is_placeable(v, __LINE__)) count++;
+                if (board[vec2i(v, __LINE__)] == PLACEABLE) board[vec2i(v, __LINE__)] = NONE;
+                count += is_placeable(v, __LINE__);
             }
         }
     }
@@ -105,10 +107,13 @@ void out() {
     unsigned score[4] = {};
     for (unsigned i = 0; i < board_size.x * board_size.y * board_size.z; i++) score[board[i]]++;
     printf(MES_SCORE, icons[BLACK], score[BLACK], score[WHITE], icons[WHITE]);
+    puts(MES_README);
 }
 
 void get_board_size() {
     unsigned short x, y, z;
+
+    puts(MES_REQ_SIZE);
 
     do {
         printf(MES_REQ_X); scanf("%hd", &x);
@@ -134,7 +139,7 @@ void get_board_size() {
 const unsigned char search(const Vector now, const Vector delta, const unsigned char flip) {
     if (
         (vec2i(now, __LINE__) < 0) ||
-        !board[vec2i(now, __LINE__)]
+        (board[vec2i(now, __LINE__)] == NONE)
     ) return 0;
     if (board[vec2i(now, __LINE__)] == turn) return 1;
     if (flip) board[vec2i(now, __LINE__)] = turn;
@@ -184,7 +189,14 @@ void play(const unsigned int called_line) {
     while (count_empty(__LINE__)) {
         if (!set_placeable(__LINE__)) {
             puts(MES_PASS);
-            continue;
+            turn %= 2;
+            turn++;
+
+            if (!set_placeable(__LINE__)) {
+                is_end = 1;
+                if (debug > 0) puts(MES_GAME_END);
+                break;
+            }
         }
 
         if (debug > 0) {
@@ -197,4 +209,6 @@ void play(const unsigned int called_line) {
         turn %= 2;
         turn++;
     }
+
+    if (debug > 0) puts(MES_GAME_END);
 }
